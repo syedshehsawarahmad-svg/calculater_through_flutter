@@ -11,30 +11,34 @@ class CalculatorApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Calculator',
+      title: 'Basic Calculator',
       theme: ThemeData(
-        primarySwatch: Colors.indigo,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.indigo,
+        ),
+        useMaterial3: true,
       ),
-      home: const CalculatorPage(),
+      home: const CalculatorScreen(),
     );
   }
 }
 
-class CalculatorPage extends StatefulWidget {
-  const CalculatorPage({super.key});
+class CalculatorScreen extends StatefulWidget {
+  const CalculatorScreen({super.key});
 
   @override
-  State<CalculatorPage> createState() => _CalculatorPageState();
+  State<CalculatorScreen> createState() => _CalculatorScreenState();
 }
 
-class _CalculatorPageState extends State<CalculatorPage> {
+class _CalculatorScreenState extends State<CalculatorScreen> {
   String display = '0';
+
   double? firstNumber;
-  String operator = '';
+  String? selectedOperator;
 
   void numberPressed(String number) {
     setState(() {
-      if (display == '0') {
+      if (display == '0' || display == 'Error') {
         display = number;
       } else {
         display += number;
@@ -42,48 +46,73 @@ class _CalculatorPageState extends State<CalculatorPage> {
     });
   }
 
-  void operatorPressed(String op) {
+  void decimalPressed() {
+    setState(() {
+      if (!display.contains('.') && display != 'Error') {
+        display += '.';
+      }
+    });
+  }
+
+  void operatorPressed(String operator) {
     setState(() {
       firstNumber = double.tryParse(display);
-      operator = op;
-      display = '0';
+
+      if (firstNumber != null) {
+        selectedOperator = operator;
+        display = '0';
+      }
     });
   }
 
   void calculate() {
-    if (firstNumber == null || operator.isEmpty) return;
+    if (firstNumber == null || selectedOperator == null) {
+      return;
+    }
 
-    double secondNumber = double.tryParse(display) ?? 0;
-    double result = 0;
+    final secondNumber = double.tryParse(display) ?? 0;
 
-    switch (operator) {
+    double result;
+
+    switch (selectedOperator) {
       case '+':
         result = firstNumber! + secondNumber;
         break;
+
       case '-':
         result = firstNumber! - secondNumber;
         break;
+
       case '×':
         result = firstNumber! * secondNumber;
         break;
+
       case '÷':
         if (secondNumber == 0) {
-          display = 'Error';
-          firstNumber = null;
-          operator = '';
+          setState(() {
+            display = 'Error';
+            firstNumber = null;
+            selectedOperator = null;
+          });
           return;
         }
+
         result = firstNumber! / secondNumber;
         break;
+
+      default:
+        return;
     }
 
     setState(() {
-      display = result.toString();
-      if (display.endsWith('.0')) {
-        display = display.substring(0, display.length - 2);
+      if (result == result.toInt()) {
+        display = result.toInt().toString();
+      } else {
+        display = result.toString();
       }
+
       firstNumber = null;
-      operator = '';
+      selectedOperator = null;
     });
   }
 
@@ -91,22 +120,38 @@ class _CalculatorPageState extends State<CalculatorPage> {
     setState(() {
       display = '0';
       firstNumber = null;
-      operator = '';
+      selectedOperator = null;
     });
   }
 
-  Widget button(String text, {VoidCallback? onPressed}) {
+  Widget calculatorButton(
+      String text, {
+        VoidCallback? onPressed,
+        bool isOperator = false,
+      }) {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.all(5),
-        child: ElevatedButton(
-          onPressed: onPressed,
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.all(20),
-          ),
-          child: Text(
-            text,
-            style: const TextStyle(fontSize: 22),
+        child: SizedBox(
+          height: 65,
+          child: ElevatedButton(
+            onPressed: onPressed,
+            style: ElevatedButton.styleFrom(
+              backgroundColor:
+              isOperator ? Colors.indigo : Colors.grey.shade200,
+              foregroundColor:
+              isOperator ? Colors.white : Colors.black87,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              text,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ),
       ),
@@ -117,63 +162,163 @@ class _CalculatorPageState extends State<CalculatorPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Calculator'),
+        title: const Text(
+          'Basic Calculator',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         centerTitle: true,
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: Container(
-              alignment: Alignment.bottomRight,
-              padding: const EdgeInsets.all(25),
-              child: Text(
-                display,
-                style: const TextStyle(
-                  fontSize: 45,
-                  fontWeight: FontWeight.bold,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: 500,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Expanded(
+                  child: Container(
+                    width: double.infinity,
+                    alignment: Alignment.bottomRight,
+                    padding: const EdgeInsets.all(25),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Text(
+                        display,
+                        style: const TextStyle(
+                          fontSize: 48,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+
+                const SizedBox(height: 20),
+
+                Row(
+                  children: [
+                    calculatorButton(
+                      '7',
+                      onPressed: () => numberPressed('7'),
+                    ),
+                    calculatorButton(
+                      '8',
+                      onPressed: () => numberPressed('8'),
+                    ),
+                    calculatorButton(
+                      '9',
+                      onPressed: () => numberPressed('9'),
+                    ),
+                    calculatorButton(
+                      '÷',
+                      isOperator: true,
+                      onPressed: () => operatorPressed('÷'),
+                    ),
+                  ],
+                ),
+
+                Row(
+                  children: [
+                    calculatorButton(
+                      '4',
+                      onPressed: () => numberPressed('4'),
+                    ),
+                    calculatorButton(
+                      '5',
+                      onPressed: () => numberPressed('5'),
+                    ),
+                    calculatorButton(
+                      '6',
+                      onPressed: () => numberPressed('6'),
+                    ),
+                    calculatorButton(
+                      '×',
+                      isOperator: true,
+                      onPressed: () => operatorPressed('×'),
+                    ),
+                  ],
+                ),
+
+                Row(
+                  children: [
+                    calculatorButton(
+                      '1',
+                      onPressed: () => numberPressed('1'),
+                    ),
+                    calculatorButton(
+                      '2',
+                      onPressed: () => numberPressed('2'),
+                    ),
+                    calculatorButton(
+                      '3',
+                      onPressed: () => numberPressed('3'),
+                    ),
+                    calculatorButton(
+                      '-',
+                      isOperator: true,
+                      onPressed: () => operatorPressed('-'),
+                    ),
+                  ],
+                ),
+
+                Row(
+                  children: [
+                    calculatorButton(
+                      'C',
+                      isOperator: true,
+                      onPressed: clear,
+                    ),
+                    calculatorButton(
+                      '0',
+                      onPressed: () => numberPressed('0'),
+                    ),
+                    calculatorButton(
+                      '.',
+                      onPressed: decimalPressed,
+                    ),
+                    calculatorButton(
+                      '+',
+                      isOperator: true,
+                      onPressed: () => operatorPressed('+'),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 10),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 65,
+                  child: ElevatedButton(
+                    onPressed: calculate,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.indigo,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      '=',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-
-          Row(
-            children: [
-              button('7', onPressed: () => numberPressed('7')),
-              button('8', onPressed: () => numberPressed('8')),
-              button('9', onPressed: () => numberPressed('9')),
-              button('÷', onPressed: () => operatorPressed('÷')),
-            ],
-          ),
-
-          Row(
-            children: [
-              button('4', onPressed: () => numberPressed('4')),
-              button('5', onPressed: () => numberPressed('5')),
-              button('6', onPressed: () => numberPressed('6')),
-              button('×', onPressed: () => operatorPressed('×')),
-            ],
-          ),
-
-          Row(
-            children: [
-              button('1', onPressed: () => numberPressed('1')),
-              button('2', onPressed: () => numberPressed('2')),
-              button('3', onPressed: () => numberPressed('3')),
-              button('-', onPressed: () => operatorPressed('-')),
-            ],
-          ),
-
-          Row(
-            children: [
-              button('C', onPressed: clear),
-              button('0', onPressed: () => numberPressed('0')),
-              button('=', onPressed: calculate),
-              button('+', onPressed: () => operatorPressed('+')),
-            ],
-          ),
-
-          const SizedBox(height: 15),
-        ],
+        ),
       ),
     );
   }
